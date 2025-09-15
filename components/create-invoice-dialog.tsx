@@ -160,32 +160,60 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-4">Customer Information</h3>
-              <div className="space-y-2">
-                <Label htmlFor="customer" className="text-sm font-medium text-gray-700">
-                  Select Customer
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-lg">Customer Information</h3>
+                  <p className="text-sm text-gray-600">Select the customer for this invoice</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="customer" className="text-sm font-semibold text-gray-800">
+                  Select Customer *
                 </Label>
                 {customers.length > 0 ? (
                   <Select value={formData.customerId} onValueChange={handleCustomerChange}>
-                    <SelectTrigger className="bg-white text-gray-900">
+                    <SelectTrigger className="bg-white text-gray-900 border-blue-200 focus:border-blue-400 focus:ring-blue-400 h-12 text-base">
                       <SelectValue placeholder="Choose a customer from your list" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white">
                       {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{customer.name}</span>
-                            <span className="text-sm text-gray-500">{customer.company}</span>
+                        <SelectItem key={customer.id} value={customer.id} className="py-3">
+                          <div className="flex flex-col items-start">
+                            <span className="font-semibold text-gray-900">{customer.name}</span>
+                            <span className="text-sm text-gray-600">{customer.company}</span>
+                            {customer.email && <span className="text-xs text-gray-500">{customer.email}</span>}
                           </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 ) : (
-                  <div className="p-4 border rounded-lg bg-amber-50 border-amber-200">
-                    <p className="text-sm text-amber-800 font-medium">No customers available</p>
-                    <p className="text-sm text-amber-700">Please add a customer first before creating an invoice.</p>
+                  <div className="p-6 border-2 border-dashed border-amber-300 rounded-xl bg-amber-50">
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      </div>
+                      <p className="text-base font-semibold text-amber-800 mb-1">No customers available</p>
+                      <p className="text-sm text-amber-700">Please add a customer first before creating an invoice.</p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -252,10 +280,12 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
                         />
                       </div>
 
-                      <div>
+                      <div className="min-w-0">
                         <Label className="text-sm font-medium text-gray-700">Amount</Label>
-                        <div className="h-10 px-3 py-2 border rounded-md bg-primary/5 border-primary/20 flex items-center font-medium text-primary">
-                          ₹{item.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        <div className="h-12 px-3 py-2 border rounded-md bg-primary/5 border-primary/20 flex items-center font-semibold text-primary min-w-0">
+                          <span className="truncate text-sm sm:text-base">
+                            ₹{item.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </span>
                         </div>
                       </div>
 
@@ -285,9 +315,9 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
                     <Plus className="w-4 h-4 mr-2" />
                     Add Another Item
                   </Button>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Total Amount</p>
-                    <p className="text-2xl font-bold text-primary">
+                  <div className="text-right min-w-0">
+                    <p className="text-sm text-gray-600 mb-1">Total Amount</p>
+                    <p className="text-xl sm:text-2xl font-bold text-primary break-words">
                       ₹{totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </p>
                   </div>
