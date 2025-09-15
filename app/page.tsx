@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, FileText, Users, DollarSign, TrendingUp } from "lucide-react"
+import { Plus, FileText, Users, IndianRupee, TrendingUp } from "lucide-react"
 import { InvoiceList } from "@/components/invoice-list"
 import { CreateInvoiceDialog } from "@/components/create-invoice-dialog"
 import { CustomerList } from "@/components/customer-list"
@@ -154,7 +154,7 @@ export default function Dashboard() {
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
                   <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl">
-                    <DollarSign className="h-5 w-5 text-white" />
+                    <IndianRupee className="h-5 w-5 text-white" />
                   </div>
                 </CardHeader>
                 <CardContent>

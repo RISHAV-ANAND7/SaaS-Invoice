@@ -78,7 +78,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
   }
 
   const addItem = () => {
-    setItems([...items, { description: "", quantity: 1, rate: 0, amount: 0 }])
+    setItems([...items, { description: "", quantity: 1, rate: "", amount: 0 }])
   }
 
   const removeItem = (index: number) => {
@@ -113,7 +113,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
       status: "draft",
       notes: "",
     })
-    setItems([{ description: "", quantity: 1, rate: 0, amount: 0 }])
+    setItems([{ description: "", quantity: 1, rate: "", amount: 0 }])
   }
 
   return (
@@ -139,7 +139,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
                     id="invoice-number"
                     value={formData.number}
                     onChange={(e) => setFormData({ ...formData, number: e.target.value })}
-                    className="bg-white"
+                    className="bg-white text-gray-900"
                     required
                   />
                 </div>
@@ -153,7 +153,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
                     type="date"
                     value={formData.dueDate}
                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    className="bg-white"
+                    className="bg-white text-gray-900"
                     required
                   />
                 </div>
@@ -168,7 +168,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
                 </Label>
                 {customers.length > 0 ? (
                   <Select value={formData.customerId} onValueChange={handleCustomerChange}>
-                    <SelectTrigger className="bg-white">
+                    <SelectTrigger className="bg-white text-gray-900">
                       <SelectValue placeholder="Choose a customer from your list" />
                     </SelectTrigger>
                     <SelectContent>
@@ -209,7 +209,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
                           placeholder="Describe the item or service"
                           value={item.description}
                           onChange={(e) => handleItemChange(index, "description", e.target.value)}
-                          className="bg-white"
+                          className="bg-white text-gray-900 placeholder:text-gray-400"
                           required
                         />
                       </div>
@@ -226,7 +226,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
                           min="1"
                           value={item.quantity}
                           onChange={(e) => handleItemChange(index, "quantity", Number.parseInt(e.target.value) || 1)}
-                          className="bg-white"
+                          className="bg-white text-gray-900"
                           required
                         />
                       </div>
@@ -240,9 +240,14 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
                           type="number"
                           min="0"
                           step="0.01"
-                          value={item.rate}
-                          onChange={(e) => handleItemChange(index, "rate", Number.parseFloat(e.target.value) || 0)}
-                          className="bg-white"
+                          placeholder="0.00"
+                          value={item.rate === 0 ? "" : item.rate}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            const numValue = value === "" ? 0 : Number.parseFloat(value)
+                            handleItemChange(index, "rate", isNaN(numValue) ? 0 : numValue)
+                          }}
+                          className="bg-white text-gray-900 placeholder:text-gray-400"
                           required
                         />
                       </div>
@@ -301,7 +306,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={4}
-                  className="bg-white"
+                  className="bg-white text-gray-900 placeholder:text-gray-400"
                 />
               </div>
 
@@ -313,7 +318,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
                   value={formData.status}
                   onValueChange={(value) => setFormData({ ...formData, status: value as any })}
                 >
-                  <SelectTrigger className="bg-white">
+                  <SelectTrigger className="bg-white text-gray-900">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
