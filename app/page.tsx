@@ -4,11 +4,14 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, FileText, Users, IndianRupee, TrendingUp } from "lucide-react"
+import { Plus, FileText, Users, IndianRupee, TrendingUp, Settings } from "lucide-react"
 import { InvoiceList } from "@/components/invoice-list"
 import { CreateInvoiceDialog } from "@/components/create-invoice-dialog"
 import { CustomerList } from "@/components/customer-list"
 import { CreateCustomerDialog } from "@/components/create-customer-dialog"
+import { BusinessProfile } from "@/components/business-profile"
+import { UserAuth } from "@/components/user-auth"
+import { BusinessSwitcher } from "@/components/business-switcher"
 
 interface Invoice {
   id: string
@@ -29,30 +32,132 @@ interface Customer {
   address?: string
 }
 
+interface User {
+  id: string
+  name: string
+  email: string
+  businesses: Business[]
+}
+
+interface Business {
+  id: string
+  name: string
+  isActive: boolean
+}
+
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<"overview" | "invoices" | "customers">("overview")
+  const [activeTab, setActiveTab] = useState<"overview" | "invoices" | "customers" | "settings">("overview")
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [showCreateInvoice, setShowCreateInvoice] = useState(false)
   const [showCreateCustomer, setShowCreateCustomer] = useState(false)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [activeBusiness, setActiveBusiness] = useState<Business | null>(null)
 
   // Load data from localStorage on mount
   useEffect(() => {
-    const savedInvoices = localStorage.getItem("invoices")
-    const savedCustomers = localStorage.getItem("customers")
+    const savedCurrentUser = localStorage.getItem("currentUser")
+    const savedActiveBusiness = localStorage.getItem("activeBusiness")
 
-    if (savedInvoices) {
-      setInvoices(JSON.parse(savedInvoices))
+    if (savedCurrentUser) {
+      setCurrentUser(JSON.parse(savedCurrentUser))
     }
-    if (savedCustomers) {
-      setCustomers(JSON.parse(savedCustomers))
+    if (savedActiveBusiness) {
+      setActiveBusiness(JSON.parse(savedActiveBusiness))
     }
   }, [])
+
+  useEffect(() => {
+    if (activeBusiness) {
+      const businessKey = `business_${activeBusiness.id}`
+      const savedInvoices = localStorage.getItem(`${businessKey}_invoices`)
+      const savedCustomers = localStorage.getItem(`${businessKey}_customers`)
+
+      if (savedInvoices) {
+        setInvoices(JSON.parse(savedInvoices))
+      } else {
+        setInvoices([])
+      }
+      if (savedCustomers) {
+        setCustomers(JSON.parse(savedCustomers))
+      } else {
+        setCustomers([])
+      }
+    }
+  }, [activeBusiness])
 
   // Calculate dashboard stats
   const totalRevenue = invoices.filter((inv) => inv.status === "paid").reduce((sum, inv) => sum + inv.amount, 0)
   const pendingAmount = invoices.filter((inv) => inv.status === "sent").reduce((sum, inv) => sum + inv.amount, 0)
   const overdueAmount = invoices.filter((inv) => inv.status === "overdue").reduce((sum, inv) => sum + inv.amount, 0)
+
+  const handleUserLogin = (user: User, business: Business) => {
+    setCurrentUser(user)
+    setActiveBusiness(business)
+
+    // Update localStorage
+    localStorage.setItem("currentUser", JSON.stringify(user))
+    localStorage.setItem("activeBusiness", JSON.stringify(business))
+  }
+
+  const handleBusinessSwitch = (business: Business) => {
+    // Update user's active business
+    if (currentUser) {
+      const updatedUser = {
+        ...currentUser,
+        businesses: currentUser.businesses.map((b) => ({
+          ...b,
+          isActive: b.id === business.id,
+        })),
+      }
+
+      setCurrentUser(updatedUser)
+      setActiveBusiness(business)
+
+      // Update localStorage
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser))
+      localStorage.setItem("activeBusiness", JSON.stringify(business))
+
+      // Update users array
+      const users = JSON.parse(localStorage.getItem("users") || "[]")
+      const updatedUsers = users.map((u: User) => (u.id === updatedUser.id ? updatedUser : u))
+      localStorage.setItem("users", JSON.stringify(updatedUsers))
+    }
+  }
+
+  const handleAddBusiness = (businessName: string) => {
+    if (currentUser) {
+      const newBusiness: Business = {
+        id: Date.now().toString(),
+        name: businessName,
+        isActive: false,
+      }
+
+      const updatedUser = {
+        ...currentUser,
+        businesses: [...currentUser.businesses, newBusiness],
+      }
+
+      setCurrentUser(updatedUser)
+
+      // Update localStorage
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser))
+
+      // Update users array
+      const users = JSON.parse(localStorage.getItem("users") || "[]")
+      const updatedUsers = users.map((u: User) => (u.id === updatedUser.id ? updatedUser : u))
+      localStorage.setItem("users", JSON.stringify(updatedUsers))
+    }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem("currentUser")
+    localStorage.removeItem("activeBusiness")
+    setCurrentUser(null)
+    setActiveBusiness(null)
+    setInvoices([])
+    setCustomers([])
+  }
 
   const handleCreateInvoice = (invoiceData: Omit<Invoice, "id" | "createdAt">) => {
     const newInvoice: Invoice = {
@@ -62,7 +167,11 @@ export default function Dashboard() {
     }
     const updatedInvoices = [...invoices, newInvoice]
     setInvoices(updatedInvoices)
-    localStorage.setItem("invoices", JSON.stringify(updatedInvoices))
+
+    if (activeBusiness) {
+      const businessKey = `business_${activeBusiness.id}`
+      localStorage.setItem(`${businessKey}_invoices`, JSON.stringify(updatedInvoices))
+    }
     setShowCreateInvoice(false)
   }
 
@@ -73,8 +182,32 @@ export default function Dashboard() {
     }
     const updatedCustomers = [...customers, newCustomer]
     setCustomers(updatedCustomers)
-    localStorage.setItem("customers", JSON.stringify(updatedCustomers))
+
+    if (activeBusiness) {
+      const businessKey = `business_${activeBusiness.id}`
+      localStorage.setItem(`${businessKey}_customers`, JSON.stringify(updatedCustomers))
+    }
     setShowCreateCustomer(false)
+  }
+
+  const handleUpdateInvoices = (updatedInvoices: Invoice[]) => {
+    setInvoices(updatedInvoices)
+    if (activeBusiness) {
+      const businessKey = `business_${activeBusiness.id}`
+      localStorage.setItem(`${businessKey}_invoices`, JSON.stringify(updatedInvoices))
+    }
+  }
+
+  const handleUpdateCustomers = (updatedCustomers: Customer[]) => {
+    setCustomers(updatedCustomers)
+    if (activeBusiness) {
+      const businessKey = `business_${activeBusiness.id}`
+      localStorage.setItem(`${businessKey}_customers`, JSON.stringify(updatedCustomers))
+    }
+  }
+
+  if (!currentUser || !activeBusiness) {
+    return <UserAuth onUserLogin={handleUserLogin} currentUser={currentUser} />
   }
 
   return (
@@ -86,7 +219,7 @@ export default function Dashboard() {
               <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
                 <FileText className="w-4 h-4 text-white" />
               </div>
-              <span className="font-semibold text-primary hidden sm:inline">InvoiceFlow</span>
+              <span className="font-semibold text-primary hidden sm:inline">Billify</span>
             </div>
 
             <div className="flex space-x-1">
@@ -94,6 +227,7 @@ export default function Dashboard() {
                 { key: "overview", label: "Overview", icon: TrendingUp },
                 { key: "invoices", label: "Invoices", icon: FileText },
                 { key: "customers", label: "Customers", icon: Users },
+                { key: "settings", label: "Settings", icon: Settings },
               ].map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
@@ -111,6 +245,13 @@ export default function Dashboard() {
             </div>
 
             <div className="flex gap-2">
+              <BusinessSwitcher
+                user={currentUser}
+                activeBusiness={activeBusiness}
+                onBusinessSwitch={handleBusinessSwitch}
+                onAddBusiness={handleAddBusiness}
+                onLogout={handleLogout}
+              />
               <Button
                 onClick={() => setShowCreateCustomer(true)}
                 variant="outline"
@@ -136,10 +277,8 @@ export default function Dashboard() {
       <header className="pt-24 pb-12 bg-slate-900">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center">
-            <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">Professional Invoicing</h1>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-              Streamline your business with beautiful, professional invoices
-            </p>
+            <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">Billify</h1>
+            <p className="text-xl text-slate-300 max-w-2xl mx-auto">Turn work into payment effortlessly</p>
           </div>
         </div>
       </header>
@@ -278,7 +417,7 @@ export default function Dashboard() {
           <InvoiceList
             invoices={invoices}
             onCreateInvoice={() => setShowCreateInvoice(true)}
-            onUpdateInvoices={setInvoices}
+            onUpdateInvoices={handleUpdateInvoices}
           />
         )}
 
@@ -286,9 +425,11 @@ export default function Dashboard() {
           <CustomerList
             customers={customers}
             onCreateCustomer={() => setShowCreateCustomer(true)}
-            onUpdateCustomers={setCustomers}
+            onUpdateCustomers={handleUpdateCustomers}
           />
         )}
+
+        {activeTab === "settings" && <BusinessProfile />}
       </main>
 
       {/* Dialogs */}

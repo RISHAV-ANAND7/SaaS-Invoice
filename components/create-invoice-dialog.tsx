@@ -28,6 +28,12 @@ interface Invoice {
   status: "draft" | "sent" | "paid" | "overdue"
   dueDate: string
   createdAt: string
+  items: InvoiceItem[]
+  subtotal: number
+  taxRate: number
+  taxAmount: number
+  total: number
+  notes: string
 }
 
 interface InvoiceItem {
@@ -55,6 +61,12 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
   })
 
   const [items, setItems] = useState<InvoiceItem[]>([{ description: "", quantity: 1, rate: 0, amount: 0 }])
+
+  const [taxSettings, setTaxSettings] = useState({
+    taxRate: 0, // Tax percentage (e.g., 18 for 18%)
+    taxType: "percentage" as "percentage" | "fixed",
+    taxName: "GST", // Name of the tax (GST, VAT, etc.)
+  })
 
   const handleCustomerChange = (customerId: string) => {
     const customer = customers.find((c) => c.id === customerId)
@@ -87,7 +99,9 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
     }
   }
 
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0)
+  const subtotal = items.reduce((sum, item) => sum + item.amount, 0)
+  const taxAmount = taxSettings.taxType === "percentage" ? (subtotal * taxSettings.taxRate) / 100 : taxSettings.taxRate
+  const totalAmount = subtotal + taxAmount
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -102,6 +116,13 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
       amount: totalAmount,
       status: formData.status,
       dueDate: formData.dueDate,
+      // Add tax details for the invoice
+      items,
+      subtotal,
+      taxRate: taxSettings.taxRate,
+      taxAmount,
+      total: totalAmount,
+      notes: formData.notes,
     })
 
     // Reset form
@@ -113,7 +134,12 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
       status: "draft",
       notes: "",
     })
-    setItems([{ description: "", quantity: 1, rate: "", amount: 0 }])
+    setItems([{ description: "", quantity: 1, rate: 0, amount: 0 }])
+    setTaxSettings({
+      taxRate: 0,
+      taxType: "percentage",
+      taxName: "GST",
+    })
   }
 
   return (
@@ -128,6 +154,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
 
         <div className="flex-1 overflow-y-auto pr-2">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* ... existing invoice details section ... */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-medium text-gray-900 mb-4">Invoice Details</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -160,6 +187,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
               </div>
             </div>
 
+            {/* ... existing customer information section ... */}
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -184,15 +212,37 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
                 {customers.length > 0 ? (
                   <Select value={formData.customerId} onValueChange={handleCustomerChange}>
                     <SelectTrigger className="bg-white text-gray-900 border-blue-200 focus:border-blue-400 focus:ring-blue-400 h-12 text-base">
-                      <SelectValue placeholder="Choose a customer from your list" />
+                      <SelectValue placeholder="Choose a customer from your list">
+                        {formData.customerId && formData.customerName ? (
+                          <span className="text-gray-900 font-medium">{formData.customerName}</span>
+                        ) : (
+                          <span className="text-gray-500">Choose a customer from your list</span>
+                        )}
+                      </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="bg-white">
+                    <SelectContent
+                      className="bg-white border border-gray-200 shadow-xl max-h-60 overflow-y-auto z-[100] w-full min-w-[var(--radix-select-trigger-width)]"
+                      position="popper"
+                      sideOffset={4}
+                    >
                       {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id} className="py-3">
-                          <div className="flex flex-col items-start">
-                            <span className="font-semibold text-gray-900">{customer.name}</span>
-                            <span className="text-sm text-gray-600">{customer.company}</span>
-                            {customer.email && <span className="text-xs text-gray-500">{customer.email}</span>}
+                        <SelectItem
+                          key={customer.id}
+                          value={customer.id}
+                          className="py-3 px-3 hover:bg-blue-50 focus:bg-blue-50 cursor-pointer data-[highlighted]:bg-blue-50"
+                        >
+                          <div className="flex flex-col items-start w-full overflow-hidden">
+                            <span className="font-semibold text-gray-900 text-sm leading-tight w-full overflow-hidden text-ellipsis whitespace-nowrap">
+                              {customer.name}
+                            </span>
+                            <span className="text-xs text-gray-600 leading-tight w-full overflow-hidden text-ellipsis whitespace-nowrap">
+                              {customer.company}
+                            </span>
+                            {customer.email && (
+                              <span className="text-xs text-gray-500 leading-tight w-full overflow-hidden text-ellipsis whitespace-nowrap">
+                                {customer.email}
+                              </span>
+                            )}
                           </div>
                         </SelectItem>
                       ))}
@@ -219,6 +269,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
               </div>
             </div>
 
+            {/* ... existing invoice items section ... */}
             <div className="bg-white border rounded-lg">
               <div className="p-4 border-b bg-gray-50">
                 <h3 className="font-medium text-gray-900">Invoice Items</h3>
@@ -325,6 +376,109 @@ export function CreateInvoiceDialog({ open, onOpenChange, onCreateInvoice, custo
               </div>
             </div>
 
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-xl border border-purple-100">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-lg">Tax Calculation</h3>
+                  <p className="text-sm text-gray-600">Configure tax settings for this invoice</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="tax-name" className="text-sm font-medium text-gray-700">
+                    Tax Name
+                  </Label>
+                  <Input
+                    id="tax-name"
+                    value={taxSettings.taxName}
+                    onChange={(e) => setTaxSettings({ ...taxSettings, taxName: e.target.value })}
+                    className="bg-white text-gray-900 border-purple-200 focus:border-purple-400 focus:ring-purple-400"
+                    placeholder="GST, VAT, Sales Tax, etc."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tax-type" className="text-sm font-medium text-gray-700">
+                    Tax Type
+                  </Label>
+                  <Select
+                    value={taxSettings.taxType}
+                    onValueChange={(value: "percentage" | "fixed") =>
+                      setTaxSettings({ ...taxSettings, taxType: value })
+                    }
+                  >
+                    <SelectTrigger className="bg-white text-gray-900 border-purple-200 focus:border-purple-400 focus:ring-purple-400">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tax-rate" className="text-sm font-medium text-gray-700">
+                    {taxSettings.taxType === "percentage" ? "Tax Rate (%)" : "Tax Amount (₹)"}
+                  </Label>
+                  <Input
+                    id="tax-rate"
+                    type="number"
+                    min="0"
+                    step={taxSettings.taxType === "percentage" ? "0.01" : "0.01"}
+                    value={taxSettings.taxRate === 0 ? "" : taxSettings.taxRate}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      const numValue = value === "" ? 0 : Number.parseFloat(value)
+                      setTaxSettings({ ...taxSettings, taxRate: isNaN(numValue) ? 0 : numValue })
+                    }}
+                    className="bg-white text-gray-900 border-purple-200 focus:border-purple-400 focus:ring-purple-400"
+                    placeholder={taxSettings.taxType === "percentage" ? "18.00" : "1000.00"}
+                  />
+                </div>
+              </div>
+
+              {/* Tax calculation preview */}
+              <div className="mt-6 p-4 bg-white rounded-lg border border-purple-200">
+                <h4 className="font-medium text-gray-900 mb-3">Tax Calculation Preview</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="font-medium">
+                      ₹{subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">
+                      {taxSettings.taxName} (
+                      {taxSettings.taxType === "percentage" ? `${taxSettings.taxRate}%` : "Fixed"}):
+                    </span>
+                    <span className="font-medium">
+                      ₹{taxAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-purple-200">
+                    <span className="font-semibold text-gray-900">Total Amount:</span>
+                    <span className="font-bold text-lg text-purple-600">
+                      ₹{totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ... existing notes and status section ... */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="notes" className="text-sm font-medium text-gray-700">

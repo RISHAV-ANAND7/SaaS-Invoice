@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Search, Mail, Phone, Building, Trash2, Edit, Users } from "lucide-react"
+import { EditCustomerDialog } from "./edit-customer-dialog"
 
 interface Customer {
   id: string
@@ -23,6 +24,8 @@ interface CustomerListProps {
 
 export function CustomerList({ customers, onCreateCustomer, onUpdateCustomers }: CustomerListProps) {
   const [searchTerm, setSearchTerm] = useState("")
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
   const filteredCustomers = customers.filter(
     (customer) =>
@@ -33,6 +36,19 @@ export function CustomerList({ customers, onCreateCustomer, onUpdateCustomers }:
 
   const handleDeleteCustomer = (customerId: string) => {
     const updatedCustomers = customers.filter((customer) => customer.id !== customerId)
+    onUpdateCustomers(updatedCustomers)
+    localStorage.setItem("customers", JSON.stringify(updatedCustomers))
+  }
+
+  const handleEditCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer)
+    setEditDialogOpen(true)
+  }
+
+  const handleUpdateCustomer = (updatedCustomer: Customer) => {
+    const updatedCustomers = customers.map((customer) =>
+      customer.id === updatedCustomer.id ? updatedCustomer : customer,
+    )
     onUpdateCustomers(updatedCustomers)
     localStorage.setItem("customers", JSON.stringify(updatedCustomers))
   }
@@ -114,7 +130,12 @@ export function CustomerList({ customers, onCreateCustomer, onUpdateCustomers }:
                         </CardDescription>
                       </div>
                       <div className="flex gap-1 flex-shrink-0">
-                        <Button variant="ghost" size="sm" className="hover:bg-primary/10 hover:text-primary">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="hover:bg-primary/10 hover:text-primary"
+                          onClick={() => handleEditCustomer(customer)}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
@@ -151,6 +172,13 @@ export function CustomerList({ customers, onCreateCustomer, onUpdateCustomers }:
           )}
         </CardContent>
       </Card>
+
+      <EditCustomerDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        customer={selectedCustomer}
+        onUpdateCustomer={handleUpdateCustomer}
+      />
     </div>
   )
 }
